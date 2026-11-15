@@ -1,6 +1,6 @@
 {
   "name": "c-code-style",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "nexnpvnk's personal fork of Tilen Majerle's C style guide, with customized rules and clang-format enforcement for AI coding agents.",
   "author": {
     "name": "Tilen Majerle",

@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-MIN_MAJOR=20
+MIN_MAJOR=23
 
 print_install_help() {
     echo "clang-format was not found (or is too old) on PATH." >&2

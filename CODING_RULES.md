@@ -25,6 +25,7 @@ This document describes the C code style maintained in this personal fork, based
   - [Documentation](#documentation)
   - [Header/source files](#headersource-files)
   - [Clang format integration](#clang-format-integration)
+    - [Formatting scope and wrapping](#formatting-scope-and-wrapping)
     - [Continuous integration (GitHub Actions)](#continuous-integration-github-actions)
 
 ## Fork-specific changes
@@ -40,6 +41,9 @@ The following intentional changes distinguish this fork from the upstream style:
 | Keep the return type and any storage-class or qualifier keywords on the same line as the function name | [Function signatures](#fork-function-signatures) |
 | Keep `case`/`default` labels on separate lines from their bodies | [Switch cases](#fork-switch-cases) |
 | Expand every non-empty function body across multiple lines; allow empty functions on one line | [Short functions](#fork-short-functions) |
+| Reformat only project-authored files; preserve the formatting of imported and adapted code | [Formatting scope](#fork-formatting-scope) |
+| Require LLVM 23 or newer; use 120 columns, four-space indentation, and one argument or parameter per line in wrapped calls and signatures | [Line wrapping](#fork-line-wrapping) |
+| Keep logical operators at line ends and avoid splitting string literals | [Line wrapping](#fork-line-wrapping) |
 
 These changes are reflected in `.clang-format`, `AGENTS.md`, the Claude Code skill, and the reference templates where applicable. Rules about other integer types, documentation placement, macros, and memory management retain their existing requirements.
 
@@ -74,7 +78,7 @@ The keywords *MUST*, *MUST NOT*, *REQUIRED*, *SHALL*, *SHALL NOT*, *SHOULD*, *SH
 
 These are the most obvious and important general rules. Please review them carefully before continuing.
 
-- `clang-format` SHOULD be used with the `.clang-format` file included in this repository (version `20.x` or later is required)
+- `clang-format` SHOULD be used with the `.clang-format` file included in this repository (version `23.x` or later is required). Use the same LLVM version for `clang-format` and `clangd` when both are installed.
 - Use the `C11` standard
 - Do not use tabs; use spaces instead
 - Use `4` spaces per indent level
@@ -1393,19 +1397,84 @@ extern "C" {
 
 This repository includes an up-to-date `.clang-format` file for `clang-format`. The tool can be integrated with most modern IDEs, including VSCode, or run directly from the command line.
 
-To format a single file manually:
+### Formatting scope and wrapping
+
+<a id="fork-formatting-scope"></a>
+
+Reformat only files authored from scratch for the adopting project. Files copied
+or adapted from libraries, vendors, SDKs, code generators, or external templates
+retain their original formatting, even outside submodules and after local edits.
+Reformat those files only when the project owner explicitly authorizes them.
+The reference templates maintained in this style repository are explicitly in
+scope for its own formatting checks.
+
+Before formatting a whole project, identify file provenance and select an
+explicit list of project-authored files. Git tracking and location outside a
+submodule do not establish authorship. Preserve the adopting project's workflow,
+approval requirements, and build/test restrictions.
+
+<a id="fork-line-wrapping"></a>
+
+- Use a 120-column limit and four spaces for indentation and continuations.
+- Keep calls and signatures on one line when they fit. Otherwise, put each
+  argument or parameter on its own line, indent by four spaces, and put the
+  closing parenthesis on a separate line at the call or declaration's indentation.
+  Keep the return type on the same line as the function name.
+- Keep short, simple structure initializers compact. When such an initializer
+  wraps after its first field, align the next field with the first field rather
+  than adding another four-space indent. The existing trailing-comma exception
+  for short, simple structures still applies; add required C structure trailing
+  commas yourself because `clang-format` does not insert them.
+- Keep `&&` and `||` at line ends. Prefer one check per line when a condition
+  needs wrapping. Other binary operators also stay at line ends when wrapped.
+- Keep string literals intact. Do not split diagnostic text into word fragments
+  to meet the column limit. Adjacent literals used to lay out multiline output
+  remain supported.
+- Prefer a break after assignment when it lets the right-hand expression remain
+  readable. Expressions that fit on one line stay on one line.
+
+For example, a wrapped signature and a wrapped call use the same bracket layout:
+
+```c
+int32_t process_measurements(
+    const measurement_configuration_t* configuration,
+    const measurement_sample_t* samples,
+    size_t sample_count,
+    measurement_result_t* result
+);
+
+print_status(
+    "State     : %s\n"
+    "Frequency : %lu Hz\n"
+    "Volume    : %u %%\n",
+    status.enabled ? "on" : "off",
+    (unsigned long)status.frequency_hz,
+    (unsigned)status.volume_percent
+);
+```
+
+A compact table entry keeps its fields aligned:
+
+```c
+    {OPT_FREQUENCY,
+     WSH_SHELL_OPT_STR(WSH_SHELL_OPT_ACCESS_WRITE, "-f", "--frequency", "PWM frequency in Hz (20000..50000)")},
+```
+
+LLVM 23 does not enforce a completely flat layout for every nested condition or
+every two-operand logical expression. It may retain checks together or add
+operand alignment and continuation indentation, including inside `_Static_assert`.
+Accept the native formatter result for these cases. Do not add postprocessing,
+format-disable markers, extra parentheses, or semantic rewrites solely to force
+a different cosmetic layout.
+
+To format a single project-authored file manually:
 ```sh
 clang-format -i path/to/file.c
 ```
 
-To format multiple files:
+To format an explicitly selected set of project-authored files:
 ```sh
-clang-format -i *.c *.h
-```
-
-or recursively:
-```sh
-find . \( -name '*.c' -o -name '*.h' \) -print0 | xargs -0 clang-format -i
+clang-format -i app/src/control.c app/include/control.h
 ```
 
 Recommended installation methods:
@@ -1428,11 +1497,12 @@ pre-commit hook set up, and it removes "please fix the formatting"
 review comments entirely.
 
 This repository includes `.github/workflows/clang-format.yml`, which:
-1. Installs `clang-format` 20 from LLVM's official apt repository (Ubuntu
-   runners ship a much older default via apt).
-2. Runs `scripts/check-format.sh --check` against every `.c`/`.h` file in
-   the repository, failing the job (and therefore the PR check) if anything
-   is not compliant.
+1. Installs `clang-format` 23 from LLVM's official apt repository instead of
+   relying on the runner's default version.
+2. Runs `scripts/check-format.sh --check` against the maintained reference
+   templates, `template.c` and `template.h`, failing the job if either is not
+   compliant. Adopting projects must replace that explicit list with their own
+   project-authored files and preserve their vendor and submodule exclusions.
 
 By itself, a failing check does **not** block a merge — GitHub still allows
 merging past a red check unless you tell it not to. To make it a real gate:

@@ -1,11 +1,10 @@
-# Language part removed. With clang-format >=20.1, the C and Cpp are separately handled,
-# so either there is no language at all, or we need to create 2 formats for C and Cpp, separately
+# Requires clang-format 23 or newer. Omitting Language applies these rules to C and C++.
 
 ---
 # Language: Cpp
 # BasedOnStyle:  LLVM
 AccessModifierOffset: -2
-AlignAfterOpenBracket: Align
+AlignAfterOpenBracket: true
 AlignArrayOfStructures: None
 AlignConsecutiveMacros:
   Enabled: true
@@ -22,8 +21,8 @@ AlignOperands: Align
 SortIncludes: true
 InsertBraces: true # Control statements must have curly brackets
 AlignTrailingComments: true
-AllowAllArgumentsOnNextLine: true
-AllowAllParametersOfDeclarationOnNextLine: true
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortEnumsOnASingleLine: true
 AllowShortBlocksOnASingleLine: Empty
 AllowShortCaseLabelsOnASingleLine: false
@@ -37,8 +36,10 @@ AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: Yes
 AttributeMacros:
   - __capability
-BinPackArguments: true
-BinPackParameters: true
+PackArguments:
+  BinPack: OnePerLine
+PackParameters:
+  BinPack: OnePerLine
 BraceWrapping:
   AfterCaseLabel: false
   AfterClass: false
@@ -58,7 +59,16 @@ BraceWrapping:
   SplitEmptyFunction: true
   SplitEmptyRecord: true
   SplitEmptyNamespace: true
-BreakBeforeBinaryOperators: NonAssignment
+BreakAfterOpenBracketFunction: true
+BreakBeforeCloseBracketFunction: true
+BreakAfterOpenBracketIf: false
+BreakBeforeCloseBracketIf: false
+BreakBeforeBinaryOperators: None
+BreakBinaryOperations:
+  Default: Never
+  PerOperator:
+    - Operators: ['&&', '||']
+      Style: OnePerLine
 BreakBeforeConceptDeclarations: true
 BreakBeforeBraces: Attach
 BreakBeforeInheritanceComma: false
@@ -67,14 +77,14 @@ BreakBeforeTernaryOperators: true
 BreakConstructorInitializersBeforeComma: false
 BreakConstructorInitializers: BeforeColon
 BreakAfterJavaFieldAnnotations: false
-BreakStringLiterals: true
+BreakStringLiterals: false
 ColumnLimit: 120
 CommentPragmas: "^ IWYU pragma:"
 QualifierAlignment: Leave
 CompactNamespaces: false
 ConstructorInitializerIndentWidth: 4
 ContinuationIndentWidth: 4
-Cpp11BracedListStyle: true
+Cpp11BracedListStyle: FunctionCall
 DeriveLineEnding: true
 DerivePointerAlignment: false
 DisableFormat: false
@@ -125,16 +135,16 @@ ObjCBlockIndentWidth: 2
 ObjCBreakBeforeNestedBlockParam: true
 ObjCSpaceAfterProperty: false
 ObjCSpaceBeforeProtocolList: true
-PenaltyBreakAssignment: 100
+PenaltyBreakAssignment: 2
 PenaltyBreakBeforeFirstCallParameter: 30
 PenaltyBreakComment: 10
 PenaltyBreakFirstLessLess: 120
 PenaltyBreakOpenParenthesis: 0
 PenaltyBreakString: 10
 PenaltyBreakTemplateDeclaration: 10
-PenaltyExcessCharacter: 100
+PenaltyExcessCharacter: 1000000
 PenaltyReturnTypeOnItsOwnLine: 1000000
-PenaltyIndentedWhitespace: 0
+PenaltyIndentedWhitespace: 1
 PointerAlignment: Left
 PPIndentWidth: -1
 ReferenceAlignment: Pointer

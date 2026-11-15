@@ -10,6 +10,9 @@ setup.
 > See [Fork-specific changes](CODING_RULES.md#fork-specific-changes) for links
 > to the customized rules. The commands below install this fork.
 
+The formatter configuration requires LLVM 23 or newer. Use the same LLVM
+version for `clang-format` and `clangd` when both are installed.
+
 ## Option 1: Claude Code plugin (marketplace)
 
 From inside Claude Code, in any project:
@@ -32,7 +35,36 @@ as part of that flow.
 > this session — verify the two commands above work before pointing others
 > at it, and open an issue on this repo if they don't.
 
-## Option 2: Vendor it into your own project (any agent, incl. Codex)
+## Option 2: Pinned submodule (any agent, incl. Codex)
+
+Keep the rules and formatter in one versioned dependency:
+
+```sh
+git submodule add https://github.com/nexnpvnk/c-code-style.git tools/c-code-style
+```
+
+Use this in the project's root `.clang-format`:
+
+```yaml
+BasedOnStyle: InheritParentConfig=tools/c-code-style
+```
+
+Keep the project's own `AGENTS.md` and link it to
+`tools/c-code-style/CODING_RULES.md`; its workflow and validation restrictions
+remain authoritative. For Codex skill discovery, add a small project-local
+`.agents/skills/c-code-style/SKILL.md` adapter that links to
+`../../../tools/c-code-style/.claude/skills/c-code-style/SKILL.md` and adapts
+commands to the project's shell and explicitly selected files. Do not copy the
+canonical skill into the project as a second source of rules.
+
+Commit `.gitmodules`, the submodule pointer, the root formatter redirect, and
+the project instructions together. Other clones restore the recorded revision
+with `git submodule update --init -- tools/c-code-style`. Review and adopt newer
+style commits explicitly; ordinary submodule initialization keeps the pinned
+revision. Format only project-authored files; imported and adapted files retain
+their original style as described in the coding rules.
+
+## Option 3: Copy a snapshot into your project
 
 Copy these into your repository:
 
@@ -51,9 +83,11 @@ If you're using Claude Code specifically and don't want the marketplace
 plugin, copy `.claude/skills/c-code-style/` into your project instead (or in
 addition) for project-scoped auto-discovery.
 
-## Option 3: CI only, no agent
+## Option 4: CI only, no agent
 
 Just want the formatting gate on pull requests, no AI agent involved? Copy
 `.github/workflows/clang-format.yml`, `.clang-format`, and
 `scripts/check-format.sh`, then follow the branch-protection steps in
-`CODING_RULES.md`'s "Continuous integration (GitHub Actions)" section.
+`CODING_RULES.md`'s "Continuous integration (GitHub Actions)" section. Replace the
+workflow's reference-template file list with an explicit list of project-authored
+files; preserve vendor, generated-file, and submodule exclusions.

@@ -16,6 +16,18 @@ name length). `template.c` and `template.h` are
 worked, clang-format-verified reference examples — match their formatting
 and doxygen alignment exactly.
 
+## Formatting scope
+
+Reformat only files authored from scratch for the adopting project. Imported or
+adapted library, vendor, SDK, generated, and external-template files retain their
+original formatting unless the owner explicitly authorizes those files. Select
+an explicit list by provenance before a project-wide pass; being tracked or
+outside a submodule does not establish authorship. This repository's maintained
+reference templates are explicitly in scope for its own checks.
+
+Keep the adopting project's workflow, approval requirements, and build/test
+restrictions. See [formatting scope and wrapping](CODING_RULES.md#formatting-scope-and-wrapping).
+
 ## What the formatter fixes for you
 
 `clang-format` (this repo ships `.clang-format`) handles indentation,
@@ -23,7 +35,15 @@ spacing, brace placement, pointer-asterisk alignment, and function layout.
 Keep the return type on the same line as the function name; only empty
 functions may fit on one line. Keep `case`/`default` statements on separate
 lines from their bodies. Write reasonably and run the formatter afterward
-(see below). Add required trailing commas in C struct initializers yourself.
+(see below). Add required trailing commas in C struct initializers yourself;
+short, simple initializers may keep the documented compact form.
+
+Use 120 columns and four-space indentation. Wrapped calls and signatures use
+one argument or parameter per line with the closing parenthesis on its own line.
+Preserve compact initializer field alignment, keep logical operators at line
+ends, and do not split string literals. Accept LLVM's native output for nested
+conditions; do not add formatting workarounds or semantic rewrites solely for
+cosmetic wrapping.
 
 ## What you must apply yourself while writing
 
@@ -67,7 +87,7 @@ After editing any `.c`/`.h` file, run:
 scripts/check-format.sh <changed-file.c> [<changed-file.h> ...]
 ```
 
-It checks `clang-format` is installed (>= version 20; prints the right
+It checks `clang-format` is installed (>= version 23; prints the right
 install command for your OS and exits non-zero if not, or if too old), then
 runs `clang-format -i` using this repo's `.clang-format`.
 
@@ -77,7 +97,5 @@ To verify without writing changes:
 scripts/check-format.sh --check <file.c> [<file.h> ...]
 ```
 
-Exits `0` if compliant, non-zero with the specific violations otherwise. This
-script and flow were verified directly in this repository (missing-tool path,
-detect → fix → re-verify round trip, and both template files passing
-`--check` as-is).
+Exits `0` if compliant, non-zero with the specific violations otherwise. Both
+reference templates were verified with LLVM 23 and this repository's configuration.
