@@ -1,11 +1,11 @@
 {
   "name": "c-code-style",
   "version": "1.0.0",
-  "description": "C coding style rules and clang-format enforcement for AI coding agents, based on Tilen Majerle's C style guide.",
+  "description": "nexnpvnk's personal fork of Tilen Majerle's C style guide, with customized rules and clang-format enforcement for AI coding agents.",
   "author": {
     "name": "Tilen Majerle",
     "url": "https://github.com/MaJerle"
   },
-  "homepage": "https://github.com/MaJerle/c-code-style",
+  "homepage": "https://github.com/nexnpvnk/c-code-style",
   "license": "MIT"
 }

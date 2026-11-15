@@ -5,12 +5,17 @@ distributable Claude Code plugin that teaches an agent to follow it and
 enforce formatting with `clang-format`. Pick the path that matches your
 setup.
 
+> **Fork notice:** This is [nexnpvnk's personal fork](https://github.com/nexnpvnk/c-code-style)
+> of [Tilen MAJERLE's style guide](https://github.com/MaJerle/c-code-style).
+> See [Fork-specific changes](CODING_RULES.md#fork-specific-changes) for links
+> to the customized rules. The commands below install this fork.
+
 ## Option 1: Claude Code plugin (marketplace)
 
 From inside Claude Code, in any project:
 
 ```
-/plugin marketplace add MaJerle/c-code-style
+/plugin marketplace add nexnpvnk/c-code-style
 /plugin install c-code-style
 ```
 

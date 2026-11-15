@@ -1,14 +1,14 @@
 {
   "name": "c-code-style-marketplace",
   "owner": {
-    "name": "Tilen Majerle",
-    "url": "https://github.com/MaJerle"
+    "name": "nexnpvnk",
+    "url": "https://github.com/nexnpvnk"
   },
   "plugins": [
     {
       "name": "c-code-style",
       "source": "./",
-      "description": "C coding style rules and clang-format enforcement for AI coding agents, based on Tilen Majerle's C style guide."
+      "description": "nexnpvnk's personal fork of Tilen Majerle's C style guide, with customized rules and clang-format enforcement for AI coding agents."
     }
   ]
 }

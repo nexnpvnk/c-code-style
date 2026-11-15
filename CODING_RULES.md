@@ -1,6 +1,8 @@
 # Recommended C style and coding rules
 
-This document describes the C code style used by Tilen MAJERLE in his projects and libraries. It is the recommended guideline for all contributions and can be integrated with AI coding agents and enforced automatically using clang-format.
+This document describes the C code style maintained in this personal fork, based on [Tilen MAJERLE's C style guide](https://github.com/MaJerle/c-code-style). It is the recommended guideline for all contributions and can be integrated with AI coding agents and enforced automatically using clang-format.
+
+> **Fork notice:** This is a personal fork maintained by [nexnpvnk](https://github.com/nexnpvnk/c-code-style), with custom rules and formatter settings. The [fork-specific changes](#fork-specific-changes) below link directly to each modified rule. Original authorship and license notices are retained.
 
 > To adopt these rules in your own project, copy **this file** (`CODING_RULES.md`) into your repository — not this repository's `README.md`, which is only a symlink to this file so it renders on the GitHub front page. Copying `CODING_RULES.md` won't overwrite your project's own `README.md`.
 
@@ -8,6 +10,7 @@ This document describes the C code style used by Tilen MAJERLE in his projects a
 
 - [Recommended C style and coding rules](#recommended-c-style-and-coding-rules)
   - [Table of Contents](#table-of-contents)
+  - [Fork-specific changes](#fork-specific-changes)
   - [The single most important rule](#the-single-most-important-rule)
   - [Integration with VSCode](#integration-with-vscode)
   - [Conventions used](#conventions-used)
@@ -23,6 +26,22 @@ This document describes the C code style used by Tilen MAJERLE in his projects a
   - [Header/source files](#headersource-files)
   - [Clang format integration](#clang-format-integration)
     - [Continuous integration (GitHub Actions)](#continuous-integration-github-actions)
+
+## Fork-specific changes
+
+The following intentional changes distinguish this fork from the upstream style:
+
+| Change | Rule |
+| --- | --- |
+| Declare each variable separately, on its own line; keep locals at the beginning of each block and preserve their type order | [Variable declarations](#fork-variable-declarations) |
+| Allow `stdbool.h`, `bool`, `true`, and `false` | [Boolean values](#fork-boolean-values) |
+| Remove the limit on `return` points; retain the recommendation to consider `retval` for accumulated status or shared cleanup | [Return points](#fork-return-points) |
+| Allow ordinary initialization of global and static variables at declaration | [Static and global initialization](#fork-static-initialization) |
+| Keep the return type and any storage-class or qualifier keywords on the same line as the function name | [Function signatures](#fork-function-signatures) |
+| Keep `case`/`default` labels on separate lines from their bodies | [Switch cases](#fork-switch-cases) |
+| Expand every non-empty function body across multiple lines; allow empty functions on one line | [Short functions](#fork-short-functions) |
+
+These changes are reflected in `.clang-format`, `AGENTS.md`, the Claude Code skill, and the reference templates where applicable. Rules about other integer types, documentation placement, macros, and memory management retain their existing requirements.
 
 ## The single most important rule
 
@@ -113,40 +132,30 @@ func_name(5, 4);        /* OK */
 func_name(4,3);         /* Wrong */
 ```
 
-- Avoid initializing `global` variables with default values (including `NULL`) when possible; use a dedicated `init` function when initialization is required, to ensure correct values, especially when embedded systems startup process doesn't do it for you.
+<a id="fork-static-initialization"></a>
+
+- Ordinary initialization of `global` and `static` variables at declaration is allowed, including zero and `NULL`. Use a dedicated `init` function when runtime initialization or reinitialization is needed.
 ```c
-static int32_t global_var_a;       /* OK */
-static int32_t global_var_b = 4;   /* Avoid if initialization can be done later */
-static int32_t global_var_a = 0;   /* Avoid if initialization can be delayed */
+static int32_t global_var_a;            /* OK, implicit zero initialization */
+static int32_t global_var_b = 4;        /* OK, explicit startup value */
+static int32_t global_var_c = 0;        /* OK, explicit zero initialization */
+static const void* global_data = NULL; /* OK, explicit null pointer initialization */
 ```
-> In embedded systems, RAM regions are often placed in custom memory sections.
-> If startup code or linker scripts do not properly initialize those sections, compiler-level initial values may have no effect.
-> To avoid this problem, create an init function for each module and set default values there:
+> For custom embedded memory sections or nonstandard startup code, ensure that the startup process and linker script provide the intended initial values. If a section is intentionally not initialized, document and implement its initialization separately.
 
+<a id="fork-variable-declarations"></a>
+
+- Declare each variable separately, on its own line, even when several variables have the same type. Keep local declarations and their initializers at the beginning of the block, before the first executable statement.
 ```c
-static int32_t global_var_a;       /* OK */
-static int32_t global_var_b = 4;   /* Avoid if startup and linker scripts may not initialize it properly */
-
-void
-my_module_init(void) {
-    global_var_a = 0;
-    global_var_b = 4;
+/* OK */
+void my_func(void) {
+    char var_char1;
+    char var_char2;
 }
-```
 
-- Declare all local variables of the same type in the same line
-```c
-void
-my_func(void) {
-    /* 1 */
-    char var_char;             /* OK */
-    
-    /* 2 */
-    char var_char1, var_char2;          /* OK */
-    
-    /* 3 */
-    char var_char3;
-    char var_char4;             /* Wrong, variable with char type already exists */
+/* Wrong, multiple variables in one declaration */
+void my_func(void) {
+    char var_char1, var_char2;
 }
 ```
 
@@ -155,8 +164,7 @@ my_func(void) {
     2. Integer types, wider unsigned type first
     3. Single/Double floating point
 ```c
-int
-my_func(void) {
+int my_func(void) {
     /* 1 */
     my_struct_t my_struct;     /* First custom structures */
     my_struct_ptr_t* my_struct_ptr; /* Pointers too */
@@ -179,7 +187,8 @@ my_func(void) {
 - Always add trailing comma in the last element of structure (or its children) initialization (this helps clang-format to properly format structures). Unless structure is very simple and short
 ```c
 typedef struct {
-    int val_a, val_b;
+    int val_a;
+    int val_b;
 } str_t;
 
 str_t item = {
@@ -239,33 +248,38 @@ size_t idx;
 for (idx = 0; idx < 10; ++idx) ...
 ```
 
-- Avoid variable assignment with function call in declaration, except for single variables
+- A single-variable declaration may initialize the variable with a function call. Keep all declarations and initializers at the beginning of the block and declare each variable separately.
 ```c
-void
-calculate(void) {
-    /* Avoid function calls when declaring variables */
+/* Wrong, multiple variables in one declaration */
+void calculate(void) {
     int32_t var_value, result = sum(1, 2);
+}
 
-    /* Use this */
+/* OK, one declaration per variable, all at the top of the block */
+void calculate(void) {
     int32_t var_value;
-    int32_t result;
-    result = sum(1, 2);
+    int32_t result = sum(1, 2);
+    uint8_t status = 3;
+    uint8_t flags = 4;
 
-    /* This is ok */
-    uint8_t status = 3, flags = 4;
+    var_value = result;
 }
 ```
 
-- Except for `char`, `float`, or `double`, always prefer types declared in `stdint.h`, e.g. `uint8_t` for `unsigned 8-bit`.
-- Avoid using the `stdbool.h` library. Use `1` or `0` for `true` or `false` respectively
-```c
-/* OK */
-uint8_t status_flag;
-status_flag = 0;
+- Except for `char`, `float`, `double`, or `bool`, always prefer types declared in `stdint.h`, e.g. `uint8_t` for `unsigned 8-bit`.
 
-/* Wrong */
+<a id="fork-boolean-values"></a>
+
+- The `stdbool.h` header and its `bool`, `true`, and `false` names are allowed for boolean values. Integer boolean flags using `1` and `0` remain allowed.
+```c
 #include <stdbool.h>
+
+/* OK, boolean type and named values */
+bool is_ready = false;
 bool status = true;
+
+/* Also allowed, integer boolean flag */
+uint8_t status_flag = 0;
 ```
 
 - Never compare against `true`, eg. `if (check_func() == 1)`, use `if (check_func()) { ... }`
@@ -289,8 +303,7 @@ if (ptr || !ptr) {
 - Always check a pointer against `NULL` before dereferencing it, unless the surrounding code guarantees, by construction, that it cannot be `NULL` at that point
 ```c
 /* OK */
-void
-process(int32_t* ptr) {
+void process(int32_t* ptr) {
     if (ptr == NULL) {
         return; /* Guard against NULL before use */
     }
@@ -298,8 +311,7 @@ process(int32_t* ptr) {
 }
 
 /* Wrong, ptr is dereferenced without a NULL check */
-void
-process(int32_t* ptr) {
+void process(int32_t* ptr) {
     *ptr = 10;
 }
 ```
@@ -320,26 +332,22 @@ for (size_t idx = 0; idx < 10; ++idx) {}  /* OK */
 ```c
 
 /* When the pointer itself can be modified, but the data it points to cannot */
-void
-my_func(const void* data) {
+void my_func(const void* data) {
 
 }
 
 /* When neither the pointer nor the data it points to can be modified */
-void
-my_func(const void* const data) {
+void my_func(const void* const data) {
 
 }
 
 /* Not REQUIRED, but advised */
-void
-my_func(const size_t length) {
+void my_func(const size_t length) {
 
 }
 
 /* When the pointer cannot be reassigned, but the data it points to can be modified */
-void
-my_func(void* const data) {
+void my_func(void* const data) {
 
 }
 ```
@@ -356,14 +364,12 @@ my_func(void* const data) {
  * thus use `void *`
  */
 /* OK example */
-void
-send_data(const void* data, size_t len) { /* OK */
+void send_data(const void* data, size_t len) { /* OK */
     /* Do not cast `void *` or `const void *` */
     const uint8_t* d_ptr = data; /* Function handles proper type for internal usage */
 }
 
-void
-send_data(const void* data, int len) {    /* Wrong, do not use int */
+void send_data(const void* data, int len) {    /* Wrong, do not use int */
 }
 ```
 
@@ -374,8 +380,7 @@ send_data(const void* data, int len) {    /* Wrong, do not use int */
 ```c
 /* OK */
 #include <stdlib.h>
-void
-my_func(size_t size) {
+void my_func(size_t size) {
     int32_t* arr;
     arr = malloc(sizeof(*arr) * size); /* OK, Allocate memory */
     arr = malloc(sizeof *arr * size);  /* Wrong, brackets for sizeof operator are missing */
@@ -388,8 +393,7 @@ my_func(size_t size) {
 }
 
 /* Wrong */
-void
-my_func(size_t size) {
+void my_func(size_t size) {
     int32_t arr[size];  /* Wrong, do not use VLA */
 }
 ```
@@ -398,7 +402,7 @@ my_func(size_t size) {
 - Never compare `boolean-treated` variables against zero or one. Use NOT (`!`) instead
 ```c
 size_t length = 5;  /* Counter variable */
-uint8_t is_ok = 0;  /* Boolean-treated variable */
+bool is_ok = false; /* Boolean variable, with `stdbool.h` included */
 if (length)         /* Wrong, length is not treated as boolean */
 if (length > 0)     /* OK, length is treated as counter variable containing multi values, not only 0 or 1 */
 if (length == 0)    /* OK, length is treated as counter variable containing multi values, not only 0 or 1 */
@@ -454,9 +458,9 @@ if (is_ok == 0)     /* Wrong, use ! for negative check */
 
 - Use `12` indents (`12 * 4` spaces) offset when commenting. If statement is larger than `12` indents, make comment `4-spaces` aligned (examples below) to next available indent
 ```c
-void
-my_func(void) {
-    char val_a, val_b;
+void my_func(void) {
+    char val_a;
+    char val_b;
 
     val_a = call_func_returning_char_a(val_a);          /* This is comment with 12*4 spaces indent from beginning of line */
     val_b = call_func_returning_char_a_but_func_name_is_very_long(val_a);   /* This is comment, aligned to 4-spaces indent */
@@ -507,32 +511,49 @@ void set(int32_t val);
 const char * get(void);
 ```
 
-- Function implementations MUST place the return type and any storage-class or qualifier keywords on a separate line from the function name
+<a id="fork-function-signatures"></a>
+
+- Function declarations and definitions MUST keep the return type and any storage-class or qualifier keywords on the same line as the function name. Wrap long parameter lists rather than placing the return type on a separate line.
 ```c
 /* OK */
-int32_t
-foo(void) {
+int32_t foo(void) {
     return 0;
 }
 
 /* OK */
-static const char*
-get_string(void) {
+static const char* get_string(void) {
     return "Hello world!\r\n";
 }
 
 /* Wrong */
-int32_t foo(void) {
-
+int32_t
+foo(void) {
     return 0;
 }
 ```
 
-- A function SHOULD have at most `2` `return` points: one early return at the top of the function for parameter/argument validation, and one return at the end of the function. Avoid `return` statements in the middle of the function body; use a return-value variable to accumulate the result instead
+<a id="fork-short-functions"></a>
+
+- Non-empty function bodies MUST span multiple lines, even if they contain only one statement. Empty functions MAY be written on one line.
+```c
+/* OK */
+int32_t get_default(void) {
+    return 0;
+}
+
+/* OK, empty function */
+void my_hook(void) {}
+
+/* Wrong, non-empty function on one line */
+int32_t get_default(void) { return 0; }
+```
+
+<a id="fork-return-points"></a>
+
+- There is no limit on the number of `return` points. Early returns, including returns in the middle of a function, are allowed when they make the control flow clearer. Consider a return-value variable such as `retval` when accumulating status or sharing cleanup. Ensure that every return path releases any resources owned by the function.
 ```c
 /* OK, single early-return for parameter check, single return at the end */
-int32_t
-my_func(const void* data, size_t len) {
+int32_t my_func(const void* data, size_t len) {
     if (data == NULL || len == 0) {
         return -1; /* Early return, parameter check */
     }
@@ -542,25 +563,23 @@ my_func(const void* data, size_t len) {
     return 0; /* Single return at the end */
 }
 
-/* Wrong, additional return in the middle of the function body */
-int32_t
-my_func(const void* data, size_t len) {
+/* OK, an additional early return makes the error path explicit */
+int32_t my_func(const void* data, size_t len) {
     if (data == NULL || len == 0) {
         return -1;
     }
 
     /* ... */
     if (some_condition) {
-        return -2; /* Wrong, avoid return in the middle of function flow */
+        return -2; /* OK, return directly when appropriate */
     }
     /* ... */
 
     return 0;
 }
 
-/* OK, use a return-value variable instead of an extra return in the middle */
-int32_t
-my_func(const void* data, size_t len) {
+/* Also recommended when useful: accumulate status in `retval` */
+int32_t my_func(const void* data, size_t len) {
     int32_t retval = 0;
 
     if (data == NULL || len == 0) {
@@ -599,20 +618,25 @@ int32_t myVar;
 int32_t MYVar;
 ```
 
-- Group local variables together by `type`
+- Group local variables together by `type`, preserving the order defined in [General rules](#general-rules), but declare each variable separately on its own line
 ```c
-void
-foo(void) {
-    int32_t val_a, val_b;   /* OK */
+/* OK */
+void foo(void) {
+    int32_t val_a;
+    int32_t val_b;
     char chr_a;
-    char chr_b;              /* Wrong, char type already exists */
+    char chr_b;
+}
+
+/* Wrong, multiple variables in one declaration */
+void foo(void) {
+    int32_t val_a, val_b;
 }
 ```
 
 - Do not declare variable after first executable statement
 ```c
-void
-foo(void) {
+void foo(void) {
     int32_t val_a;
     val_a = bar();
     int32_t val_b;      /* Wrong, there is already executable statement */
@@ -621,10 +645,12 @@ foo(void) {
 
 - You may declare new variables inside next indent level
 ```c
-int32_t val_a, val_b;
+int32_t val_a;
+int32_t val_b;
 val_a = foo();
 if (val_a) {
-    int32_t val_c, val_d;   /* OK, val_c and val_d are in if-statement scope */
+    int32_t val_c;         /* OK, declaration at the beginning of the nested block */
+    int32_t val_d;
     val_c = foo();
     int32_t val_e;      /* Wrong, there was already executable statement inside block */
 }
@@ -640,9 +666,13 @@ char *txt;
 char * txt;
 ```
 
-- When declaring multiple pointer variables, you may declare them with asterisk aligned to variable name
+- Declare each pointer variable separately and keep the asterisk aligned to its type
 ```c
 /* OK */
+char* cur;
+char* nxt;
+
+/* Wrong, multiple pointer variables in one declaration */
 char *cur, *nxt;
 ```
 
@@ -890,6 +920,26 @@ if (condition) {
 
 ### Switch statement
 
+<a id="fork-switch-cases"></a>
+
+- `case` and `default` labels MUST be on separate lines from their bodies, even when the body contains only one statement. Never collapse a case into a single line. An opening block brace MAY remain on the label line as shown below.
+```c
+/* OK */
+switch (value) {
+    case 0:
+        break;
+    default:
+        handle_value();
+        break;
+}
+
+/* Wrong, case and default bodies share their label lines */
+switch (value) {
+    case 0: break;
+    default: handle_value(); break;
+}
+```
+
 - Add *single indent* for every `case` statement
 - Use additional *single indent* for `break` statement in each `case` or `default` statement
 ```c
@@ -956,7 +1006,8 @@ switch (var) {
 switch (sel) {
     /* OK */
     case 0: {
-        int32_t val_a, val_b;
+        int32_t val_a;
+        int32_t val_b;
         char chr;
         val_a = 5;
         /* ... */
@@ -1017,7 +1068,8 @@ int32_t actual_result = 5 * (3) + (4);    /* It is evaluated to this, final resu
 - When macro uses multiple statements, protect these using `do {} while (0)` statement
 ```c
 typedef struct {
-    int32_t pos_x, pos_y;
+    int32_t pos_x;
+    int32_t pos_y;
 } point_t;
 point_t pnt;                  /* Define new point */
 
@@ -1186,8 +1238,7 @@ typedef enum {
  * \param[in]       par_b: Second number
  * \return          Sum of input values
  */
-int32_t
-sum(int32_t par_a, int32_t par_b) {
+int32_t sum(int32_t par_a, int32_t par_b) {
     return par_a + par_b;
 }
 
@@ -1198,8 +1249,7 @@ sum(int32_t par_a, int32_t par_b) {
  * \param[in]       par_b: Second number
  * \param[out]      result: Output variable used to save result
  */
-void
-void_sum(int32_t par_a, int32_t par_b, int32_t* result) {
+void void_sum(int32_t par_a, int32_t par_b, int32_t* result) {
     *result = par_a + par_b;
 }
 ```
@@ -1218,8 +1268,7 @@ typedef enum {
  * \brief           Check some value
  * \return          \ref MY_OK on success, member of \ref my_enum_t otherwise
  */
-my_enum_t
-check_value(void) {
+my_enum_t check_value(void) {
     return MY_OK;
 }
 ```
@@ -1231,8 +1280,7 @@ check_value(void) {
  * \param[in]       inp: Input data
  * \return          Pointer to output data on success, `NULL` otherwise
  */
-const void *
-get_data(const void* inp) {
+const void* get_data(const void* inp) {
     return inp;
 }
 ```

@@ -26,13 +26,13 @@ AllowAllArgumentsOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
 AllowShortEnumsOnASingleLine: true
 AllowShortBlocksOnASingleLine: Empty
-AllowShortCaseLabelsOnASingleLine: true
-AllowShortFunctionsOnASingleLine: All
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
 AllowShortLambdasOnASingleLine: All
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterDefinitionReturnType: None
-AlwaysBreakAfterReturnType: AllDefinitions
+AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: Yes
 AttributeMacros:
@@ -133,7 +133,7 @@ PenaltyBreakOpenParenthesis: 0
 PenaltyBreakString: 10
 PenaltyBreakTemplateDeclaration: 10
 PenaltyExcessCharacter: 100
-PenaltyReturnTypeOnItsOwnLine: 5
+PenaltyReturnTypeOnItsOwnLine: 1000000
 PenaltyIndentedWhitespace: 0
 PointerAlignment: Left
 PPIndentWidth: -1

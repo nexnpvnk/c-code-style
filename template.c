@@ -39,8 +39,7 @@
  * \param[in]       par_b: Second value
  * \return          Sum of input values
  */
-int32_t
-sum(int32_t par_a, int32_t par_b) {
+int32_t sum(int32_t par_a, int32_t par_b) {
     return par_a + par_b;
 }
 
@@ -51,7 +50,6 @@ sum(int32_t par_a, int32_t par_b) {
  * \param[in]       par_b: Second parameter
  * \return          Sum of input values
  */
-static int32_t
-prv_sum(int32_t par_a, int32_t par_b) {
+static int32_t prv_sum(int32_t par_a, int32_t par_b) {
     return par_a + par_b;
 }
